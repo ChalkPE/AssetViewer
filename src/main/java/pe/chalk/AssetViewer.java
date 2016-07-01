@@ -3,6 +3,8 @@
  * @since 2015-11-15
  */
 
+package pe.chalk;
+
 import javafx.application.Application;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ChoiceDialog;
@@ -24,31 +26,38 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class AssetViewer extends Application {
-    public static void main(String[] args){
+    public static void main(final String[] args){
         Application.launch(args);
     }
 
-    public static Path getAssetsPath(){
-        TextInputDialog dialog = new TextInputDialog(Paths.get(System.getenv("APPDATA"), ".minecraft").toAbsolutePath().toString());
+    private static Path getAssetsPath(){
+        Path defaultMinecraftPath = Paths.get(".");
+        final String os = System.getProperty("os.name").toLowerCase();
+
+        if(os.startsWith("linux"))         defaultMinecraftPath = Paths.get(System.getProperty("user.home"), ".minecraft");
+        else if(os.startsWith("windows"))  defaultMinecraftPath = Paths.get(System.getenv("APPDATA"), ".minecraft");
+        else if(os.startsWith("mac os x")) defaultMinecraftPath = Paths.get(System.getProperty("user.home"), "Library", "Application Support", "minecraft");
+
+        final TextInputDialog dialog = new TextInputDialog(defaultMinecraftPath.toAbsolutePath().toString());
         dialog.setResizable(true);
         dialog.getDialogPane().setPrefWidth(500);
         dialog.setTitle("AssetViewer");
-        dialog.setHeaderText("Your Minecraft path");
+        dialog.setHeaderText("Your .minecraft path");
 
         while(true){
-            String pathString = dialog.showAndWait().orElse(null);
+            final String pathString = dialog.showAndWait().orElse(null);
             if(pathString == null) return null;
 
-            Path minecraftPath = Paths.get(pathString);
+            final Path minecraftPath = Paths.get(pathString);
             if(Files.notExists(minecraftPath) || !Files.isDirectory(minecraftPath)) continue;
 
-            Path assetsPath = minecraftPath.resolve("assets");
+            final Path assetsPath = minecraftPath.resolve("assets");
             if(Files.notExists(assetsPath) || !Files.isDirectory(assetsPath)) continue;
 
-            Path indexesPath = assetsPath.resolve("indexes");
+            final Path indexesPath = assetsPath.resolve("indexes");
             if(Files.notExists(indexesPath) || !Files.isDirectory(indexesPath)) continue;
 
-            Path objectsPath = assetsPath.resolve("objects");
+            final Path objectsPath = assetsPath.resolve("objects");
             if(Files.notExists(objectsPath) || !Files.isDirectory(objectsPath)) continue;
 
             return assetsPath;
@@ -56,7 +65,7 @@ public class AssetViewer extends Application {
     }
 
     @Override
-    public void start(Stage stage){
+    public void start(final Stage stage){
         try{
             final Path assetsPath = AssetViewer.getAssetsPath();
             if(assetsPath == null) return;
@@ -90,34 +99,34 @@ public class AssetViewer extends Application {
 
             alert.close();
             new Alert(Alert.AlertType.INFORMATION, "Done!").showAndWait().ifPresent(param -> System.exit(0));
-        }catch(IOException | JSONException e){
+        }catch(final IOException | JSONException e){
             e.printStackTrace();
         }
     }
 
     //Code from https://github.com/ChalkPE/Takoyaki
-    public static <T> Stream<Map.Entry<String, T>> buildStream(Class<T> type, JSONObject object){
+    private static <T> Stream<Map.Entry<String, T>> buildStream(final Class<T> type, final JSONObject object){
         return AssetViewer.buildStream(type, object, true);
     }
 
     //Code from https://github.com/ChalkPE/Takoyaki
-    public static <T> Stream<Map.Entry<String, T>> buildStream(Class<T> type, JSONObject object, boolean parallel){
-        Map<String, T> map = new HashMap<>();
+    private static <T> Stream<Map.Entry<String, T>> buildStream(final Class<T> type, final JSONObject object, final boolean parallel){
+        final Map<String, T> map = new HashMap<>();
 
-        if(object != null) for(String i: object.keySet()){
-            Object element = object.get(i);
+        if(object != null) for(final String i: object.keySet()){
+            final Object element = object.get(i);
             if(type.isInstance(element)) map.put(i, type.cast(element));
         }
 
-        Stream<Map.Entry<String, T>> stream = map.entrySet().stream();
+        final Stream<Map.Entry<String, T>> stream = map.entrySet().stream();
         return parallel ? stream.parallel() : stream;
     }
 
     //Code from https://github.com/ChalkPE/Takoyaki
-    public interface UnsafeConsumer<T> extends Consumer<T> {
-        void acceptUnsafely(T t) throws Exception;
+    interface UnsafeConsumer<T> extends Consumer<T> {
+        void acceptUnsafely(final T t) throws Exception;
 
-        default void accept(T t){
+        default void accept(final T t){
             try{
                 acceptUnsafely(t);
             }catch(Exception e){
@@ -127,7 +136,7 @@ public class AssetViewer extends Application {
     }
 
     //Code from https://github.com/ChalkPE/Takoyaki
-    public static <T> Consumer<T> unsafe(final UnsafeConsumer<T> consumer){
+    private static <T> Consumer<T> unsafe(final UnsafeConsumer<T> consumer){
         return consumer;
     }
 }
